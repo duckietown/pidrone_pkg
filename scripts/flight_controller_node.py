@@ -222,11 +222,11 @@ class FlightController(object):
         # (if the flight cotroll usb is unplugged and plugged back in,
         #  it becomes .../USB1)
         try:
-            board = MultiWii('/dev/ttyUSB0')
+            board = MultiWii('/dev/ttyACM0')
         except SerialException as e:
             print(("usb0 failed: " + str(e)))
             try:
-                board = MultiWii('/dev/ttyUSB1')
+                board = MultiWii('/dev/ttyACM1')
             except SerialException:
                 print('\nCannot connect to the flight controller board.')
                 print('The USB is unplugged. Please check connection.')
