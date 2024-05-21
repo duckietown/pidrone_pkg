@@ -105,7 +105,8 @@ class FlightController(object):
             p = msg.pitch
             y = msg.yaw
             t = msg.throttle
-            self.command = [r,p,y,t]
+            self.command = [r,p,y,t].append(cmds.idle_cmd[4:8])
+            print("Command length", len(self.command))
 
     # Update methods:
     #################
@@ -235,6 +236,7 @@ class FlightController(object):
 
     def send_cmd(self):
         """ Send commands to the flight controller board """
+        assert len(self.command) is 8, "COMMAND HAS WRONG SIZE"
         self.board.sendCMD(8, MultiWii.SET_RAW_RC, self.command)
         self.board.receiveDataPacket()
         #print('command sent:', self.command)
