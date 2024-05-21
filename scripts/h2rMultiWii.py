@@ -220,7 +220,7 @@ class MultiWii:
             self.box = temp
             return self.box
         elif code == MultiWii.ANALOG:
-            temp = struct.unpack('<'+'bHHH', data)
+            temp = struct.unpack('<'+'B2HhH', data)
             self.analog['vbat'] = temp[0]
             self.analog['intPowerMeterSum'] = temp[1]
             self.analog['rssi'] = temp[2]
