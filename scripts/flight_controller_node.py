@@ -287,8 +287,8 @@ class FlightController(object):
             #print('\nSafety Failure: low battery\n')
             disarm = False
         if curr_time - self.heartbeat_web_interface > rospy.Duration.from_sec(3):
-            # print('\nSafety Failure: web interface heartbeat\n')
-            # print('The web interface stopped responding. Check your browser')
+            print('\nSafety Failure: web interface heartbeat\n')
+            print('The web interface stopped responding. Check your browser')
             disarm = True
         if curr_time - self.heartbeat_pid_controller > rospy.Duration.from_sec(1):
             print('\nSafety Failure: not receiving flight commands.')
