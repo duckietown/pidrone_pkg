@@ -116,9 +116,9 @@ class FlightController(object):
         """
 
         # extract roll, pitch, heading
-        # self.board.getData(MultiWii.ATTITUDE)
+        self.board.getData(MultiWii.ATTITUDE)
         # extract lin_acc_x, lin_acc_y, lin_acc_z
-        # self.board.getData(MultiWii.RAW_IMU)
+        self.board.getData(MultiWii.RAW_IMU)
 
         # calculate values to update imu_message:
         roll = np.deg2rad(self.board.attitude['angx'])
@@ -237,8 +237,8 @@ class FlightController(object):
     def send_rc_cmd(self):
         """ Send commands to the flight controller board """
         assert len(self.command) is 8, "COMMAND HAS WRONG SIZE"
-        self.board.send_rc_CMD(8, MultiWii.SET_RAW_RC, self.command)
-        
+        self.board.send_raw_command(8, MultiWii.SET_RAW_RC, self.command)
+        self.board.receiveDataPacket()
         if (self.command != self.last_command):
             print('new command sent:', self.command)
             self.last_command = self.command
@@ -250,7 +250,7 @@ class FlightController(object):
     def ctrl_c_handler(self, signal, frame):
         """ Disarm the drone and quits the flight controller node """
         print("\nCaught ctrl-c! About to Disarm!")
-        self.board.send_rc_CMD(8, MultiWii.SET_RAW_RC, cmds.disarm_cmd)
+        self.board.send_raw_command(8, MultiWii.SET_RAW_RC, cmds.disarm_cmd)
         self.board.receiveDataPacket()
         rospy.sleep(1)
         self.modepub.publish('DISARMED')
@@ -287,8 +287,8 @@ class FlightController(object):
             #print('\nSafety Failure: low battery\n')
             disarm = False
         if curr_time - self.heartbeat_web_interface > rospy.Duration.from_sec(3):
-            print('\nSafety Failure: web interface heartbeat\n')
-            print('The web interface stopped responding. Check your browser')
+            # print('\nSafety Failure: web interface heartbeat\n')
+            # print('The web interface stopped responding. Check your browser')
             disarm = True
         if curr_time - self.heartbeat_pid_controller > rospy.Duration.from_sec(1):
             print('\nSafety Failure: not receiving flight commands.')
@@ -351,7 +351,7 @@ def main():
     rospy.Subscriber("/pidrone/state", State, fc.heartbeat_state_estimator_callback)
 
 
-    signal.signal(signal.SIGINT, fc.ctrl_c_handler)
+    # signal.signal(signal.SIGINT, fc.ctrl_c_handler)
     # set the loop rate (Hz)
     r = rospy.Rate(60)
     try:
@@ -364,10 +364,10 @@ def main():
                 break
                 
             # update and publish flight controller readings
-            #fc.update_battery_message()
-            #fc.update_imu_message()
-            #imupub.publish(fc.imu_message)
-            #batpub.publish(fc.battery_message)
+            fc.update_battery_message()
+            fc.update_imu_message()
+            imupub.publish(fc.imu_message)
+            batpub.publish(fc.battery_message)
 
             # update and send the flight commands to the board
             fc.update_command()
@@ -388,7 +388,7 @@ def main():
     finally:
         print('Shutdown received')
         print('Sending DISARM command')
-        fc.board.send_rc_CMD(8, MultiWii.SET_RAW_RC, cmds.disarm_cmd)
+        fc.board.send_raw_command(8, MultiWii.SET_RAW_RC, cmds.disarm_cmd)
         fc.board.receiveDataPacket()
 
 
