@@ -18,7 +18,7 @@ def main():
     # board.sendCMD(8, MultiWii.SET_RAW_RC, cmds)
     # time.sleep(1)
     print("Calibrate ACC... make sure we are level and still.")
-    board.sendCMD(0, MultiWii.ACC_CALIBRATION, [])
+    board.send_rc_CMD(0, MultiWii.ACC_CALIBRATION, [])
     board.receiveDataPacket()
 
     time.sleep(2)

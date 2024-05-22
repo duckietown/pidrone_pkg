@@ -5,7 +5,7 @@ import time
 
 def main():
     board = MultiWii("/dev/ttyUSB0")
-    board.sendCMD(0, MultiWii.PID, [])
+    board.send_rc_CMD(0, MultiWii.PID, [])
     board.receiveDataPacket()
     print(board.pid)
     time.sleep(2)

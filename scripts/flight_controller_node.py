@@ -116,9 +116,9 @@ class FlightController(object):
         """
 
         # extract roll, pitch, heading
-        self.board.getData(MultiWii.ATTITUDE)
+        # self.board.getData(MultiWii.ATTITUDE)
         # extract lin_acc_x, lin_acc_y, lin_acc_z
-        self.board.getData(MultiWii.RAW_IMU)
+        # self.board.getData(MultiWii.RAW_IMU)
 
         # calculate values to update imu_message:
         roll = np.deg2rad(self.board.attitude['angx'])
@@ -234,15 +234,13 @@ class FlightController(object):
                 sys.exit()
         return board
 
-    def send_cmd(self):
+    def send_rc_cmd(self):
         """ Send commands to the flight controller board """
         assert len(self.command) is 8, "COMMAND HAS WRONG SIZE"
-        self.board.sendCMD(8, MultiWii.SET_RAW_RC, self.command)
-        self.board.receiveDataPacket()
-        #print('command sent:', self.command)
+        self.board.send_rc_CMD(8, MultiWii.SET_RAW_RC, self.command)
         
         if (self.command != self.last_command):
-            print('command sent:', self.command)
+            print('new command sent:', self.command)
             self.last_command = self.command
 
     def near_zero(self, n):
@@ -252,7 +250,7 @@ class FlightController(object):
     def ctrl_c_handler(self, signal, frame):
         """ Disarm the drone and quits the flight controller node """
         print("\nCaught ctrl-c! About to Disarm!")
-        self.board.sendCMD(8, MultiWii.SET_RAW_RC, cmds.disarm_cmd)
+        self.board.send_rc_CMD(8, MultiWii.SET_RAW_RC, cmds.disarm_cmd)
         self.board.receiveDataPacket()
         rospy.sleep(1)
         self.modepub.publish('DISARMED')
@@ -309,6 +307,9 @@ class FlightController(object):
             print('Check the state_estimator node\n')
             disarm = True
 
+        ##### TODO: REMOVE THIS
+        disarm = False
+        #######################
         return disarm
 
 
@@ -363,17 +364,17 @@ def main():
                 break
                 
             # update and publish flight controller readings
-            fc.update_battery_message()
-            fc.update_imu_message()
-            imupub.publish(fc.imu_message)
-            batpub.publish(fc.battery_message)
+            #fc.update_battery_message()
+            #fc.update_imu_message()
+            #imupub.publish(fc.imu_message)
+            #batpub.publish(fc.battery_message)
 
             # update and send the flight commands to the board
             fc.update_command()
-            fc.send_cmd()
+            fc.send_rc_cmd()
 
             # publish the current mode of the drone
-            fc.modepub.publish(fc.curr_mode)
+            # fc.modepub.publish(fc.curr_mode)
 
             # sleep for the remainder of the loop time
             r.sleep()
@@ -387,7 +388,7 @@ def main():
     finally:
         print('Shutdown received')
         print('Sending DISARM command')
-        fc.board.sendCMD(8, MultiWii.SET_RAW_RC, cmds.disarm_cmd)
+        fc.board.send_rc_CMD(8, MultiWii.SET_RAW_RC, cmds.disarm_cmd)
         fc.board.receiveDataPacket()
 
 

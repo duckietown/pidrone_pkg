@@ -105,32 +105,52 @@ class MultiWii:
                                  writeTimeout=2,
                              )
 
+    def create_raw_rc_packet(self,channels):
+        """
+        Create a MSP packet for RAW_RC command with given channel values.
+        channels: List of 8 integers, each between 1000 and 2000 representing RC channel values.
+        """
+        header = b'$M<'  # MSP header
+        code = 200  # MSP code for RAW_RC
+        data_length = 16  # Length of data for 8 channels, each 2 bytes
+
+        # Pack the channels data into a byte string
+        data = struct.pack('<8H', *channels)
+
+        # Calculate the checksum: XOR of size, code, and all bytes in data
+        checksum = data_length ^ code
+        for byte in data:
+            checksum ^= ord(byte)
+
+        checksum &= 0xFF
+
+        # Construct the complete packet
+        packet = header + struct.pack('<BB', data_length, code) + data + struct.pack('<B', checksum)
+        return packet
+
     """Function for sending a command to the board."""
-    def sendCMD(self, data_length, code, data):
+    def send_rc_CMD(self, data_length, code, data):
 
-        #NOTICE: the order of the yaw and thrust is switched to correspond to
-        # cleanflight's standard AETR channel order
-        if len(data) == 4:
-            [r,p,y,t] = data
-            data = [r,p,t,y]
-
-        dl = len(data)
-        if dl == 0:
-            s1 = MultiWii.SEND_ZERO_STRUCT1
-        elif dl == 8:
-            s1 = MultiWii.SEND_EIGHT_STRUCT1
+        if code is MultiWii.SET_RAW_RC:
+            packet = self.create_raw_rc_packet(data)
         else:
-            s1 = struct.Struct('<2B%dh' % len(data))
+            dl = len(data)
+            if dl == 0:
+                s1 = MultiWii.SEND_ZERO_STRUCT1
+            elif dl == 8:
+                s1 = MultiWii.SEND_EIGHT_STRUCT1
+            else:
+                s1 = struct.Struct('<2B%dh' % len(data))
 
-        dataString = s1.pack(data_length, code, *data)
+            dataString = s1.pack(data_length, code, *data)
 
 
-        b = np.frombuffer(dataString, dtype=np.uint8)
-        checksum = np.bitwise_xor.accumulate(b)[-1]
-        footerString = MultiWii.footerS.pack(checksum)
-
-        self.ser.write(MultiWii.emptyString.join((MultiWii.headerString, dataString, footerString, "\n")))
-        # return self.receiveDataPacket()
+            b = np.frombuffer(dataString, dtype=np.uint8)
+            checksum = np.bitwise_xor.accumulate(b)[-1]
+            footerString = MultiWii.footerS.pack(checksum)
+            packet = MultiWii.emptyString.join((MultiWii.headerString, dataString, footerString, "\n"))
+        
+        self.ser.write(packet)
 
 
 
@@ -145,40 +165,39 @@ class MultiWii:
       break;
 
     """
-    def arm(self):
-        timer = 0
-        start = time.time()
-        while timer < 0.5:
-            data = [1500, 1500, 2000, 1000, 1500, 1500, 1500, 1500]
-            self.sendCMD(16,MultiWii.SET_RAW_RC,data)
-            time.sleep(0.05)
-            timer = timer + (time.time() - start)
-            start =  time.time()
+    # def arm(self):
+    #     timer = 0
+    #     start = time.time()
+    #     while timer < 0.5:
+    #         data = [1500, 1500, 2000, 1000, 1500, 1500, 1500, 1500]
+    #         self.sendCMD(16,MultiWii.SET_RAW_RC,data)
+    #         time.sleep(0.05)
+    #         timer = timer + (time.time() - start)
+    #         start =  time.time()
 
-    def disarm(self):
-        timer = 0
-        start = time.time()
-        while timer < 0.5:
-            data = [1500,1500,1000,990, 1500, 1500, 1500, 1500]
-            self.sendCMD(16,MultiWii.SET_RAW_RC,data)
-            time.sleep(0.05)
-            timer = timer + (time.time() - start)
-            start =  time.time()
+    # def disarm(self):
+    #     timer = 0
+    #     start = time.time()
+    #     while timer < 0.5:
+    #         data = [1500,1500,1000,990, 1500, 1500, 1500, 1500]
+    #         self.sendCMD(16,MultiWii.SET_RAW_RC,data)
+    #         time.sleep(0.05)
+    #         timer = timer + (time.time() - start)
+    #         start =  time.time()
 
     """Function to receive a data packet from the board"""
     def getData(self, cmd):
-        self.sendCMD(0,cmd,[])
+        self.send_rc_CMD(0,cmd,[])
         return self.receiveDataPacket()
 
     """ Sends a request for N commands from the board. """
     def getDataBulk(self, cmds):
         for c, args in cmds:
-            self.sendCMD(0, c, args)
+            self.send_rc_CMD(0, c, args)
         result = []
         for c, args in cmds:
             result.append(self.receiveDataPacket())
         return result
-
 
     def receiveDataPacket(self):
         start = time.time()
@@ -344,7 +363,7 @@ class MultiWii:
     Calibrate the IMU and write outputs to a config file.
     """
     def calibrate(self, fname):
-        self.sendCMD(0, MultiWii.ACC_CALIBRATION, [])
+        self.send_rc_CMD(0, MultiWii.ACC_CALIBRATION, [])
         print(self.receiveDataPacket())
 
         # ignore the first 200 because it takes a while to settle.
@@ -377,7 +396,7 @@ class MultiWii:
         f.close()
 
     def setBoxValues(self, values=(0,7,0,0)):
-        self.sendCMD(len(values) * 2, MultiWii.SET_BOX, values)
+        self.send_rc_CMD(len(values) * 2, MultiWii.SET_BOX, values)
 
     def eepromWrite(self):
-        self.sendCMD(0, MultiWii.EEPROM_WRITE, [])
+        self.send_rc_CMD(0, MultiWii.EEPROM_WRITE, [])
