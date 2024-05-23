@@ -7,7 +7,7 @@ def main():
     board = MultiWii("/dev/ttyUSB0")
     print("Calibrate ACC... make sure we are level and still.")
     time.sleep(1)
-    board.sendCMD(0, MultiWii.ACC_CALIBRATION, [])
+    board.send_raw_command(0, MultiWii.ACC_CALIBRATION, [])
     board.receiveDataPacket()
     time.sleep(2)
     print("Done!")

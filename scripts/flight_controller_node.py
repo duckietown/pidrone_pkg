@@ -105,7 +105,8 @@ class FlightController(object):
             p = msg.pitch
             y = msg.yaw
             t = msg.throttle
-            self.command = [r,p,y,t]
+            self.command = [r,p,y,t].append(cmds.idle_cmd[4:8])
+            print("Command length", len(self.command))
 
     # Update methods:
     #################
@@ -221,11 +222,11 @@ class FlightController(object):
         # (if the flight cotroll usb is unplugged and plugged back in,
         #  it becomes .../USB1)
         try:
-            board = MultiWii('/dev/ttyUSB0')
+            board = MultiWii('/dev/ttyACM0')
         except SerialException as e:
             print(("usb0 failed: " + str(e)))
             try:
-                board = MultiWii('/dev/ttyUSB1')
+                board = MultiWii('/dev/ttyACM1')
             except SerialException:
                 print('\nCannot connect to the flight controller board.')
                 print('The USB is unplugged. Please check connection.')
@@ -233,14 +234,13 @@ class FlightController(object):
                 sys.exit()
         return board
 
-    def send_cmd(self):
+    def send_rc_cmd(self):
         """ Send commands to the flight controller board """
-        self.board.sendCMD(8, MultiWii.SET_RAW_RC, self.command)
+        assert len(self.command) is 8, "COMMAND HAS WRONG SIZE"
+        self.board.send_raw_command(8, MultiWii.SET_RAW_RC, self.command)
         self.board.receiveDataPacket()
-        #print('command sent:', self.command)
-        
         if (self.command != self.last_command):
-            print('command sent:', self.command)
+            print('new command sent:', self.command)
             self.last_command = self.command
 
     def near_zero(self, n):
@@ -250,7 +250,7 @@ class FlightController(object):
     def ctrl_c_handler(self, signal, frame):
         """ Disarm the drone and quits the flight controller node """
         print("\nCaught ctrl-c! About to Disarm!")
-        self.board.sendCMD(8, MultiWii.SET_RAW_RC, cmds.disarm_cmd)
+        self.board.send_raw_command(8, MultiWii.SET_RAW_RC, cmds.disarm_cmd)
         self.board.receiveDataPacket()
         rospy.sleep(1)
         self.modepub.publish('DISARMED')
@@ -307,6 +307,9 @@ class FlightController(object):
             print('Check the state_estimator node\n')
             disarm = True
 
+        ##### TODO: REMOVE THIS
+        disarm = False
+        #######################
         return disarm
 
 
@@ -348,7 +351,7 @@ def main():
     rospy.Subscriber("/pidrone/state", State, fc.heartbeat_state_estimator_callback)
 
 
-    signal.signal(signal.SIGINT, fc.ctrl_c_handler)
+    # signal.signal(signal.SIGINT, fc.ctrl_c_handler)
     # set the loop rate (Hz)
     r = rospy.Rate(60)
     try:
@@ -368,10 +371,10 @@ def main():
 
             # update and send the flight commands to the board
             fc.update_command()
-            fc.send_cmd()
+            fc.send_rc_cmd()
 
             # publish the current mode of the drone
-            fc.modepub.publish(fc.curr_mode)
+            # fc.modepub.publish(fc.curr_mode)
 
             # sleep for the remainder of the loop time
             r.sleep()
@@ -385,7 +388,7 @@ def main():
     finally:
         print('Shutdown received')
         print('Sending DISARM command')
-        fc.board.sendCMD(8, MultiWii.SET_RAW_RC, cmds.disarm_cmd)
+        fc.board.send_raw_command(8, MultiWii.SET_RAW_RC, cmds.disarm_cmd)
         fc.board.receiveDataPacket()
 
 
