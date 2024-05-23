@@ -339,7 +339,7 @@ def main(ControllerClass):
                     Controls the flight of the drone by running a PID controller on the error calculated by 
                     the desired and current velocity and position of the drone
                     """,
-                    epilog='For more info check https://github.com/h2r/pidrone_pkg/tree/ente'
+                    epilog='For more info check https://github.com/h2r/pidrone_pkg/tree/dd21'
                     )
 
     parser.add_argument(
