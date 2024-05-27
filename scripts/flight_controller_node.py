@@ -307,9 +307,6 @@ class FlightController(object):
             print('Check the state_estimator node\n')
             disarm = True
 
-        ##### TODO: REMOVE THIS
-        disarm = False
-        #######################
         return disarm
 
 
