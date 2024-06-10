@@ -56,7 +56,7 @@ stuff "python state_estimator.py -p ema\n"
 
 screen -t "Vision"
 stuff "cd $(rospack find pidrone_pkg)/scripts\n"
-stuff "sleep 10s && roslaunch --wait pidrone_pkg raspicam_node.launch\n"
+stuff "roslaunch --wait pidrone_pkg raspicam_node.launch\n"
 
 screen -t "Optical Flow"
 stuff "cd $(rospack find pidrone_pkg)/scripts\n"
